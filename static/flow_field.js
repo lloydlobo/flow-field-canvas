@@ -4,7 +4,7 @@
 
 const __DEBUG = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");  /** Indicates whether the script is running in debug mode. @type {boolean} */
 __DEBUG && console.log("Flow Field Canvas");
-__DEBUG && console.time("simulation");
+// __DEBUG && console.time("simulation");
 
 // --------------------------------------------------------------------------------------------------------------------
 // CONSTANTS
@@ -373,7 +373,7 @@ class FlowFieldFn {
 // DOM EVENT HANDLERS
 
 class EventHandlerFn {
-    static _handle_resize_debounced = Utils.debounce(() => {
+    static reset_all() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         g_particle.x = Math.random() * canvas.width + 0;
@@ -386,6 +386,10 @@ class EventHandlerFn {
         g_closest_point = undefined;
         g_frame_tick = 1;
         g_closest_points_map.clear();
+    }
+
+    static _handle_resize_debounced = Utils.debounce(() => {
+        EventHandlerFn.reset_all();
     }, 200);
 
     static handle_resize() {
@@ -485,7 +489,7 @@ class CanvasFn {
         __DEBUG && Utils.assert(frame_id_handle !== undefined && frame_id_handle !== null && Number.isInteger(frame_id_handle), `Expected a valid animation frame_id_handle. Got ${frame_id_handle}.`);
         cancelAnimationFrame(frame_id_handle);
         __DEBUG && Logging.log_on_stop_animation();
-        __DEBUG && console.timeEnd("simulation");
+        // __DEBUG && console.timeEnd("simulation");
     }
 }
 
@@ -612,8 +616,8 @@ document.getElementById("stop_animation_toggle")?.addEventListener("click", _ =>
 
 document.getElementById("reload_animation_toggle")?.addEventListener("click", _ => {
     CanvasFn.stop_animation(g_animation_frame_id_handle);
-    EventHandlerFn.handle_resize();
-    main();
+    EventHandlerFn.reset_all();
+    animate(g_field_instance);
 });
 
 document.getElementById("shuffle_field_toggle")?.addEventListener("click", _ => {
