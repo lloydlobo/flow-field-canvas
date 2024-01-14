@@ -3,38 +3,32 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Flow Field Canvas</title>
+    <title>Flow Canvas Field</title>
+    <link rel="stylesheet" href="static/style.css">
+    <script defer src="static/flow_field.js"></script>
 </head>
 
 <body>
-    <style>
-        :root {
-            --font-mono: 'Courier New', Courier, monospace;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-        }
-
-        html,
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-        }
-
-        canvas {
-            display: grid;
-            margin-inline: auto;
-            aspect-ratio: 1;
-            background-color: "#335";
-        }
-
-        button {
-            font-family: var(--font-mono, monospace);
-        }
-    </style>
     <canvas id="flowFieldCanvas" width="800" height="800"></canvas>
-    <script src="static/flow_field.js"></script>
+
+    <div class="controls_panel">
+        <input id="controls_toggle" type="checkbox">
+        <section class="controls_section">
+            <div class="control_row">
+                <label for="stop_animation_toggle">Stop</label>
+                <input id="stop_animation_toggle" type="button" title="Stop Animation" name="stop-animation">
+            </div>
+            <div class="control_row">
+                <label for="reload_animation_toggle">Reload</label>
+                <input id="reload_animation_toggle" type="button" title="Reload Animation" name="reload-animation">
+            </div>
+            <div class="control_row">
+                <label for="shuffle_field_toggle">Shuffle</label>
+                <input id="shuffle_field_toggle" type="button" title="Shuffle Field" name="shuffle-field">
+            </div>
+        </section>
+        <label for="controls_toggle" id="label_controls_toggle">Toggle Controls</label>
+    </div>
 </body>
 
 </html>
