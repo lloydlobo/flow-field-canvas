@@ -2,33 +2,36 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <title>Flow Canvas Field</title>
-    <link rel="stylesheet" href="static/style.css">
-    <script defer src="static/flow_field.js"></script>
+  <meta charset="UTF-8">
+  <title>Flow Canvas Field</title>
+  <link rel="stylesheet" href="static/style.css">
+  <script defer src="static/flow_field.js"></script>
 </head>
 
 <body>
-    <canvas id="flowFieldCanvas" width="800" height="800"></canvas>
+  <canvas id="flowFieldCanvas" width="800" height="800"></canvas>
 
-    <div class="controls_panel">
-        <input id="controls_toggle" type="checkbox">
-        <section class="controls_section">
-            <div class="control_row">
-                <label for="stop_animation_toggle">Stop</label>
-                <input id="stop_animation_toggle" type="button" title="Stop Animation" name="stop-animation">
-            </div>
-            <div class="control_row">
-                <label for="reload_animation_toggle">Reload</label>
-                <input id="reload_animation_toggle" type="button" title="Reload Animation" name="reload-animation">
-            </div>
-            <div class="control_row">
-                <label for="shuffle_field_toggle">Shuffle</label>
-                <input id="shuffle_field_toggle" type="button" title="Shuffle Field" name="shuffle-field">
-            </div>
-        </section>
-        <label for="controls_toggle" id="label_controls_toggle">Toggle Controls</label>
-    </div>
+  <div class="controls_panel">
+    <input id="controls_toggle" type="checkbox">
+    <section class="controls_section">
+      <div class="control_row">
+        <span id="cur_field_pattern_name">sinusoidal</span>
+      </div>
+      <div class="control_row">
+        <label for="shuffle_field_toggle">Shuffle</label>
+        <input id="shuffle_field_toggle" type="button" title="Shuffle Field" name="shuffle-field">
+      </div>
+      <div class="control_row">
+        <label for="stop_animation_toggle">Stop</label>
+        <input id="stop_animation_toggle" type="button" title="Stop Animation" name="stop-animation">
+      </div>
+      <div class="control_row">
+        <label for="reload_animation_toggle">Reload</label>
+        <input id="reload_animation_toggle" type="button" title="Reload Animation" name="reload-animation">
+      </div>
+    </section>
+    <label for="controls_toggle" id="label_controls_toggle">Toggle Controls</label>
+  </div>
 </body>
 
 </html>
