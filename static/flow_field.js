@@ -2,14 +2,14 @@
 
 /** @fileoverview Flow field simulation script.  */
 
-// __DEBUG && console.time("simulation");
 const __DEBUG = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");  /** Indicates whether the script is running in debug mode. @type {boolean} */
+__DEBUG && console.time("simulation");
 
 // --------------------------------------------------------------------------------------------------------------------
 // CONSTANTS
 
 /** Golden ratio constant. @type {number} */
-const PHI = 1.618;
+const PHI = 1.61803398875;
 const PHI_INV = 1 / PHI;
 const PI_INV = 1 / Math.PI;
 
@@ -17,10 +17,7 @@ const PI_INV = 1 / Math.PI;
 const FPS_MULTIPLIER = 0.001; //  is this ms?
 
 /** Resistance factor for controlling frames per second. @type {number} */
-const FPS_RESISTANCE = (60 * FPS_MULTIPLIER) / 3; // HACK to control FPS with this
-
-/** Number of field shapes. @type {number} */
-const N_FIELD_SHAPE = 4 * 2.5; // if field shape decides scaleFactor: 4 * 4 == 4 quadrants. A sinusoidal pattern creates at max 4 whole spirals.  else use atleast (4 * 2.5) or 10.
+const FPS_RESISTANCE = (60 * FPS_MULTIPLIER) / 6; // HACK to control FPS with this.
 
 const ARROW_MIN_SIZE = 2.0, ARROW_MAX_SIZE = 4.0;
 
@@ -75,16 +72,11 @@ class Utils {
      * @param {number} min - The minimum allowed value.
      * @param {number} max - The maximum allowed value.
      * @example
-     * // Clamping within the range
-     * Utils.clamp(5, 0, 10); // Returns 5
-     * // Clamping below the minimum
-     * Utils.clamp(-5, 0, 10); // Returns 0
-     * // Clamping above the maximum
-     * Utils.clamp(15, 0, 10); // Returns 10
-     * // Clamping with equal minimum and maximum
-     * Utils.clamp(7, 5, 5); // Returns 5
-     * // Clamping with negative values
-     * Utils.clamp(-8, -10, -5); // Returns -8
+     * Utils.clamp(5, 0, 10); // Returns 5 * // Clamping within the range
+     * Utils.clamp(-5, 0, 10); // Returns 0 * // Clamping below the minimum
+     * Utils.clamp(15, 0, 10); // Returns 10 * // Clamping above the maximum
+     * Utils.clamp(7, 5, 5); // Returns 5 * // Clamping with equal minimum and maximum
+     * Utils.clamp(-8, -10, -5); // Returns -8 * // Clamping with negative values
      * @returns {number} - The clamped value.
      */
     static clamp(value, min, max) {
@@ -133,7 +125,7 @@ class Utils {
     }
 
     /**
-     * Generates a range of numbers.
+     * Generates a range of numbers and returns as a list.
      * @param {number} start - The starting value of the range.
      * @param {number} end - The ending value of the range.
      * @param {number} [step=1] - The step between each number in the range (default: 1).
@@ -142,39 +134,39 @@ class Utils {
      * const negativeRange = Utils.range(5, 1, -1); // Output: [5, 4, 3, 2, 1]
      * @returns {number[]} - Sequence of a range of numbers inclusive of values of each step between start and end.
      */
-    static range(start, end, step = 1) {
+    static range_tolist(start, end, step = 1) {
         /** @type {number[]} */
-        const lst = [];
-        if (step > 0) {  // Handle negative steps to ensure inclusive nature for range's start and end values.
+        const lst = [];  // Handle negative steps to ensure inclusive nature for range's start and end values.
+        if (step > 0)
             for (let i = start; i <= end; i += step) lst.push(i);
-        } else {
+        else
             for (let i = start; i >= end; i += step) lst.push(i);
-        }
         return lst;
     }
-}
 
-if (__DEBUG) {  /* TEST Utils */
-    {  /* BITWISE OPERATIONS */
-        // double bitwise NOT `~~` => truncate float to integer.
-        Utils.assert(Math.round(3.14) === (~~3.14));
-        Utils.assert(Math.round(1.618) !== (~~1.618));
-        Utils.assert(Math.round(1.618) === (~~2.000));
-        Utils.assert(Math.floor(3.14) === (~~3.14));
-        Utils.assert(Math.floor(1.618) === (~~1.618));
-        Utils.assert(Math.floor(-1.618) !== (~~(-1.618)));  // -2, -1
-        Utils.assert(Math.floor(-1.618) === (~~(-2.000)));  // -2, -2
+    /**
+     * Generates a range of numbers.
+     * @param {number} start 
+     * @param {number} end 
+     * @param {number} [step=1]
+     * @returns {Generator<any, void, unknown>}
+     */
+    static * range(start, end, step = 1) {
+        if (step > 0)
+            for (let i = start; i <= end; i += step) yield i;
+        else
+            for (let i = start; i >= end; i += step) yield i;
     }
-    {  /* PRECISION manhattan_distance vs hypotenuse */
-        Utils.assert(Utils.manhattan_distance(0, 0, 3, 3) === 6);
-        Utils.assert(Math.hypot(3 - 0, 3 - 0) === 4.242640687119286);
-        // const x1 = 65, y1 = 18, x2 = 16, y2 = 43;  // delta -18.99..  # 2 closest diagonal point coordinates in a sinusoidal flow field.
-        const x1 = 405, y1 = 177, x2 = 429, y2 = 201;  // delta -14.05.. 2 closest diagonal point coordinates in a sinusoidal flow field.
-        const dist_manhattan = Utils.manhattan_distance(x1, y1, x2, y2);
-        const dist_pythagorean = Math.hypot(x2 - x1, y2 - y1);
-        const got_delta_dist = dist_pythagorean - dist_manhattan;
-        const expect_delta_dist = -14.058874503045715;
-        Utils.assert(got_delta_dist === expect_delta_dist, `Expected ${expect_delta_dist}. Got ${got_delta_dist}.`);
+
+    /**
+     * Naive sleep basic blocks the thread with a while loop counting via `Date.now()` that runs till `ms` milliseconds has elapsed.
+     * @param {number|undefined} ms - Milliseconds to sleep the thread for. [default: 1000]
+     */
+    static sleep_basic(ms = 1000) {
+        let start = Date.now();
+        __DEBUG && console.time(start);
+        while ((Date.now() - start) < ms) { }
+        __DEBUG && console.timeEnd(start);
     }
 }
 
@@ -220,11 +212,12 @@ class FlowField {
         this.rows = rows;
         this.steps = steps;
         this.pattern = pattern;
-        /** @prop {CFieldVector[]} [field] */
+        /** @prop {FieldVector[]} [field] */
         this.field = FlowFieldFn.gen_field(this);
     }
 }
 
+const g_visited_path = new Set();
 // --------------------------------------------------------------------------------------------------------------------
 // DATA STRUCTURE TRAITS
 
@@ -247,25 +240,47 @@ class ParticleFn {
 
     /** Draws the particle at the given coordinates. @param {Particle} [particle]  */
     static draw_particle(particle) {
+        const nx = (g_closest_point.x * g_scale);  // (0.3)ms 
+        const ny = (g_closest_point.y * g_scale);
         {  // draw visited field point
-            // truncate float to int, to avoid imprecise painting on prev visited field point.
-            const nx = (g_closest_point.x * g_scale);  // (0.3)ms 
-            const ny = (g_closest_point.y * g_scale);
-            ctx.save();  // (0.7)ms
-            if (/* with_frames_elapsed_clr */ !false)  // performance heavy (0.5:4.6)ms
+            // PERF: Group multiple drawing operations together and perform them in a batch. 
+            // PERF: Minimize calls to ctx.save() and ctx.restore().
+            // ctx.save();  // (0.7)ms
+            if (true  /* with_frames_elapsed_clr */) {  // performance heavy (0.5:4.6)ms
+                // truncate float to int; via bitwise NOT `~~`, to avoid imprecise painting on prev visited field point.
                 CanvasFn.draw_point(~~nx, ~~ny, `hsla(${(-g_frame_tick * g_frame_tick_limit_360deg)}, 50%, 50%, 0.0125`, 8);
-            else  // (0.3:0.6)ms
+            } else { // (0.3:0.6)ms
                 CanvasFn.draw_point(nx, ny, "hsla(116, 50%, 50%, 0.0125", 8); //  hue 96 || 116 looks great.
-
-            ctx.restore();
+            }
+            // ctx.restore();
         }
         {  // draw particle
-            ctx.save();
-            if (/* with_frames_elapsed_clr */ false)  // performance heavy (0.4:1.0)ms
+            // ctx.save();
+            if (false  /* with_frames_elapsed_clr */) {  /* performance heavy (0.4:1.0)ms */
                 CanvasFn.draw_point(particle.x, particle.y, `hsla(${~~(-g_frame_tick * g_frame_tick_limit_360deg)}, 60%, 50%, 0.95)`, 3);
-            else
-                CanvasFn.draw_point(particle.x, particle.y, "hsla(1, 55%, 50%, 0.90)", 3);
-            ctx.restore();
+            } else {
+                const with_close_point_graphics = false;
+                const has_closest_flow_point = nx && ny;
+                if (with_close_point_graphics && has_closest_flow_point) {
+                    const fps = FPS_RESISTANCE * 1000; // _ * (1 / FPS_MULTIPLIER)
+                    let xy_key = JSON.stringify({ x: Math.round(Math.round(particle.x * fps) * 0.1 * fps), y: Math.round(Math.round(particle.y * fps) * 0.1 * fps) }); /* Pixelate visited path to bigger numbers. */
+                    if (false  /* with_field_color */) {
+                        CanvasFn.draw_point(particle.x, particle.y, "hsla(1, 55%, 50%, 0.90)", 3);  // red looks great if clearing canvas and particles are a dot.
+                    } else {
+                        let ncolor = "hsla(240, 33%, 50%, 0.35";
+                        ncolor = "hsla(1, 55%, 50%, 0.90)";
+                        if (g_visited_path.has(xy_key)) ncolor = "hsla(180, 90%, 50%, 0.35)";  // console.count("visited")
+                        CanvasFn.draw_point(particle.x, particle.y, ncolor, 8 || 3 || 4 || 1);
+                    }
+                    g_visited_path.add(xy_key);
+                }
+                else {
+                    CanvasFn.draw_point(particle.x + 1, particle.y + 1, "hsla(106, 60%, 50%, 0.25)", 4); // CanvasFn.draw_point(particle.x, particle.y, "hsla(180, 90%, 50%, 0.35)", 1);
+                    CanvasFn.draw_point(particle.x - 1, particle.y - 1, "hsla(250, 40%, 30%, 0.25)", 4); // CanvasFn.draw_point(particle.x, particle.y, "hsla(180, 90%, 50%, 0.35)", 1);
+                    CanvasFn.draw_point(particle.x, particle.y, "hsla(1, 60%, 50%, 0.50)", 4); // CanvasFn.draw_point(particle.x, particle.y, "hsla(180, 90%, 50%, 0.35)", 1);
+                }
+            }  // hue _ || 1 looks great.
+            // ctx.restore();
         }
     }
 
@@ -273,22 +288,24 @@ class ParticleFn {
      * Updates the particle's position based on the flow field data.
      * @param {Particle} [mut_particle] - Mutable pointer to a `Particle`.
      * @param {FlowField} data - Flow field data.
+     * TIP: use perfect square ratios for interpolation. Adjust to vary velocity/thrust/drift/inertia.
      */
-    static update_particle_via_field(mut_particle, data, is_lerped = true) {
+    static update_particle_via_field(mut_particle, data, is_lerped = true, t_interpolate = 1.00) {
         const p_x = mut_particle.x / g_scale;
         const p_y = mut_particle.y / g_scale;
 
         /** @type {FlowVector} */
-        const flow_vector = ParticleFn._get_flow_vector_at_position(p_x, p_y, data);  // (1.6)ms
+        const flow_vector = ParticleFn._get_flow_vector_at_position(p_x, p_y, data, true/*with_manhattan_distance*/);  // (1.6)ms
         const resistance = g_scale * FPS_RESISTANCE;
+        const nforceu = flow_vector.u * resistance;
+        const nforcev = flow_vector.v * resistance;
 
         if (is_lerped) {  // Smooth particle trail curves.
-            const pull_ratio_b_has_on_a = 0.64 || 1.00; // TIP: use perfect square ratios. Adjust to vary velocity/thrust/drift/inertia.
-            mut_particle.x += Utils.lerp(p_x, flow_vector.u * resistance, pull_ratio_b_has_on_a);  // (0.7)ms
-            mut_particle.y += Utils.lerp(p_y, flow_vector.v * resistance, pull_ratio_b_has_on_a);
+            mut_particle.x += Utils.lerp(p_x, nforceu, t_interpolate);  // (0.7)ms
+            mut_particle.y += Utils.lerp(p_y, nforcev, t_interpolate);
         } else {
-            mut_particle.x += flow_vector.u * resistance;
-            mut_particle.y += flow_vector.v * resistance;
+            mut_particle.x += nforceu;
+            mut_particle.y += nforcev;
         }
 
         // Wrap the particle around the canvas edges
@@ -317,22 +334,13 @@ class ParticleFn {
             }
             const key_xy = `${~~(x * scale)},${~~(y * scale)}`;  /* (double bitwise NOT) `~~` == `Math.round()` */
             const lru_flow_vector = g_closest_points_map.get(key_xy)
-            if (lru_flow_vector !== undefined)
-                return lru_flow_vector;
+            if (lru_flow_vector !== undefined) return lru_flow_vector;
         }
-
         // Find the closest data point to the given position.
-        g_closest_point = data.reduce((closest, point) => {
-            let dist;
-            if (with_manhattan_distance) dist = Utils.manhattan_distance(x, y, point.x, point.y);  // 0.7ms
-            else dist = Math.hypot(point.x - x, point.y - y);  // 17.2 ms
-            return dist < closest.distance
-                ? { point, distance: dist }
-                : closest;
-        }, {
-            point: null,
-            distance: Infinity,
-        }).point;
+        g_closest_point = data.reduce((closest, point) => { /* 0.7ms */ /*vs*/ /* 17.2 ms */
+            const dist = (with_manhattan_distance) ? Utils.manhattan_distance(x, y, point.x, point.y) : Math.hypot(point.x - x, point.y - y);
+            return (dist < closest.distance) ? { point, distance: dist } : closest;
+        }, { point: null, distance: Infinity, }).point;
 
         const flow_vec = new FlowVector(g_closest_point.u, g_closest_point.v);
         with_lru_cache && g_closest_points_map.set(key_xy, flow_vec);
@@ -340,6 +348,7 @@ class ParticleFn {
         return flow_vec;  // Return the flow vector at the closest point
     }
 }
+
 
 class FlowFieldFn {
     /** @param {number} x @param {number} y @returns {FlowVector} u and v values of flow vector at x and y coordinates. */
@@ -361,12 +370,11 @@ class FlowFieldFn {
         }
 
         const step = nrows / nsteps;
-        const xvals = Utils.range(0, nrows, step);
-        const yvals = Utils.range(0, ncols, step);
+        const xvals = Utils.range_tolist(0, nrows, step);
+        const yvals = Utils.range_tolist(0, ncols, step);
 
         /** @type {number[][]} */
         const xgrid = [], ygrid = [];
-
         for (let i = 0; i < nsteps; i += 1) {
             const xrow = [], yrow = [];
             for (let j = 0; j < nsteps; j += 1) {
@@ -409,7 +417,7 @@ class FlowFieldFn {
                 ugrid = ygrid.map(row => row.map(val => (-Math.sqrt(val * PHI_INV * PI_INV))));
                 vgrid = xgrid.map(row => row.map(val => Math.sqrt(val * PHI_INV * PI_INV)));
                 break;
-            case E_FIELD_PATTERNS.ANTI_CLOCKWISE: // Should ugrid be assigned xgrid?
+            case E_FIELD_PATTERNS.ANTI_CLOCKWISE:
                 ugrid = ygrid.map(row => row.map(val => Math.sqrt(val * PHI_INV * PI_INV)));
                 vgrid = xgrid.map(row => row.map(val => Math.sqrt(val * PHI_INV * PI_INV)));
                 break;
@@ -417,7 +425,6 @@ class FlowFieldFn {
                 throw Error(`Expected an enumeration of ${Object.keys(E_FIELD_PATTERNS)} for field pattern. Got ${pattern}.`);
         }
         return { ugrid, vgrid };
-
     }
 }
 
@@ -426,12 +433,16 @@ class FlowFieldFn {
 
 class EventHandlerFn {
     static reset_all() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        if (true  /* with_square_canvas */) {
+            CanvasFn.set_square_canvas_dimensions();
+        } else {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
         g_particle.x = Math.random() * canvas.width + 0;
         g_particle.y = Math.random() * canvas.height + 0;
         // Following can lead to race conditions or cache miss like phenomenon if not handled properly.
-        g_scale = canvas.width / N_FIELD_SHAPE;
+        g_scale = canvas.width / g_field_shape;
         g_canvas_width = canvas.width;
         g_canvas_height = canvas.height;
         g_cell_count = g_canvas_width * g_canvas_height;
@@ -460,7 +471,7 @@ class EventHandlerFn {
         __DEBUG && Utils.assert(rand_num < nkeys && rand_num !== cur_pattern_index);
         g_cur_field_pattern = keys[rand_num];
         document.getElementById("cur_field_pattern_name").textContent = g_cur_field_pattern.toLowerCase();  //.replace("_", "-").replace(" ", "");
-        g_field_instance = new FlowField(N_FIELD_SHAPE, N_FIELD_SHAPE, g_flow_field_steps, g_cur_field_pattern);
+        g_field_instance = new FlowField(g_field_shape, g_field_shape, g_field_steps, g_cur_field_pattern);
         EventHandlerFn.handle_resize();
         CanvasFn.stop_animation(g_animation_frame_id_handle)
         animate(g_field_instance);
@@ -476,6 +487,7 @@ class CanvasFn {
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
         ctx.fillStyle = color;  // (9.1)ms
+        ctx.lineCap = "round";
         ctx.fill();
         ctx.closePath();
     }
@@ -484,9 +496,11 @@ class CanvasFn {
     static draw_line(x1, y1, x2, y2, color = "#fff", line_width = 1) {
         ctx.beginPath();
         ctx.moveTo(x1, y1);
+        // ctx.quadraticCurveTo(1, 1, x2, y2);
         ctx.lineTo(x2, y2);
         ctx.strokeStyle = color;
         ctx.lineWidth = line_width;
+        ctx.lineCap = "round";
         ctx.stroke();
         ctx.closePath();
     }
@@ -498,38 +512,41 @@ class CanvasFn {
     }
 
     /** @param {number} x @param {number} y @param {number} angle @param {number} length @param {number} size @param {string} color @param {boolean} with_arrow_line */
-
     static draw_arrow(x, y, angle, length, size, color = 'hsla(180, 90%, 50%, 1.0)', with_arrow_line = true) {
-        // console.count("draw_arrow");  // 1024
-        if (with_arrow_line) {  //  performance heavy
-            length *= (size * Math.PI) * 0.618;
+        if (with_arrow_line) length *= (size * Math.PI) * PHI || 0.618;  /* performance heavy */
+        {  // magnitude: approx(min=0.4. max=79). multiply by prime 17 for wider distribution.
+            let magnitude = (size * length * 17);
+            const h = 160 + Utils.clamp(magnitude, 1, 48);
+            const s = Utils.clamp(20 + magnitude, 35, 90);
+            const l = Utils.clamp(-20 + magnitude, 35, 60);
+            color = `hsla(${h}, ${s}%, ${l}%, 1.0)`;
         }
 
         function draw_arrow_filled() {
             const end_x = x + length * Math.cos(angle);
             const end_y = y + length * Math.sin(angle);
-            ctx.strokeStyle = color;
+            ctx_field_offscreen.strokeStyle = color;
+            ctx_field_offscreen.lineCap = "round";
             // Draw arrow line
             if (with_arrow_line) {  //  performance heavy
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-                ctx.lineTo(end_x, end_y);
-                ctx.stroke();
+                ctx_field_offscreen.beginPath();
+                ctx_field_offscreen.moveTo(x, y);
+                ctx_field_offscreen.lineTo(end_x, end_y);
+                ctx_field_offscreen.stroke();
             }
             // Draw arrowhead
-            ctx.save();
-            ctx.fillStyle = color;
-            ctx.translate(end_x, end_y);
-            ctx.rotate(angle);
-
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(-size, -size);
-            ctx.lineTo(-size, size);
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.restore();
+            ctx_field_offscreen.save();
+            ctx_field_offscreen.fillStyle = color;
+            ctx_field_offscreen.translate(end_x, end_y);
+            ctx_field_offscreen.rotate(angle);
+            ctx_field_offscreen.beginPath();
+            ctx_field_offscreen.moveTo(0, 0);
+            ctx_field_offscreen.lineCap = "round";
+            ctx_field_offscreen.lineTo(-size, -size);
+            ctx_field_offscreen.lineTo(-size, size);
+            ctx_field_offscreen.closePath();
+            ctx_field_offscreen.fill();
+            ctx_field_offscreen.restore();
         }
 
         draw_arrow_filled();
@@ -544,7 +561,13 @@ class CanvasFn {
         __DEBUG && Utils.assert(frame_id_handle !== undefined && frame_id_handle !== null && Number.isInteger(frame_id_handle), `Expected a valid animation frame_id_handle. Got ${frame_id_handle}.`);
         cancelAnimationFrame(frame_id_handle);
         __DEBUG && Logging.log_on_stop_animation();
-        // __DEBUG && console.timeEnd("simulation");
+        __DEBUG && console.timeEnd("simulation");
+    }
+
+    static set_square_canvas_dimensions() {
+        const w = window.innerWidth, h = window.innerHeight;
+        canvas.width = w;
+        canvas.height = (w < h) ? w : h;
     }
 }
 
@@ -555,15 +578,45 @@ class CanvasFn {
 /**@type {HTMLCanvasElement | null} */
 const canvas = document.getElementById('flowFieldCanvas');
 __DEBUG && Utils.assert(canvas !== null, `Expected canvas id ${'flowFieldCanvas'} to be on a non-null HTMLCanvasElement.`);
-/** @type {CanvasRenderingContext3D | null} */
+
+/** @type {CanvasRenderingContext2D | null} */
 const ctx = canvas?.getContext('2d');
 __DEBUG && Utils.assert(ctx !== null, `Expected ctx to be non-null.`);
+
 if (!canvas || !ctx) throw Error('Canvas or context not found.');
 
 // Adapt to devices window size
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+if (/* with_square_canvas */ true) {
+    CanvasFn.set_square_canvas_dimensions();
+} else {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
 canvas.style.background = "#101020" || "#334";
+ctx.imageSmoothingEnabled = true;
+ctx.imageSmoothingQuality = "high";
+
+/*
+  Double buffering
+  - Perform drawing operations on ctx_offscreen.
+  - Copy the canvas_offscreen to the main canvas.
+  @example ctx.drawImage(canvas_offscreen, 0, 0);
+*/
+/**@type {HTMLCanvasElement} */
+const canvas_offscreen = document.createElement("canvas");
+/** @type {CanvasRenderingContext2D} */
+const ctx_offscreen = canvas_offscreen.getContext("2d");
+
+/**@type {HTMLCanvasElement} */
+const canvas_field_offscreen = document.createElement("canvas");
+/** @type {CanvasRenderingContext2D} */
+const ctx_field_offscreen = canvas_field_offscreen.getContext("2d");
+
+canvas_field_offscreen.width = canvas.width;
+canvas_field_offscreen.height = canvas.height;
+ctx_field_offscreen.imageSmoothingEnabled = true;
+ctx_field_offscreen.imageSmoothingQuality = "high";
+
 // window.addEventListener("mousemove", ev => { const mouse_x = ev.clientX, mouse_y = ev.clientY; console.info({ mouse_x, mouse_y }); })
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -578,21 +631,34 @@ const g_particles = []
 const g_closest_points_map = new Map();
 
 // Initialize variables
+
 /** @type {EFieldPatterns} */
 let g_cur_field_pattern = E_FIELD_PATTERNS.SINUSOIDAL;
-let g_flow_field_steps = 2 ** 5;
-let g_field_instance = new FlowField(N_FIELD_SHAPE, N_FIELD_SHAPE, g_flow_field_steps, g_cur_field_pattern);
-let g_scale = canvas.width / (N_FIELD_SHAPE || 10); // 800 x 800 => 80 x 80, 10 * 1 unit pixel
+let g_field_has_arrows = false;
+/** Number of field shapes. @type {number} */
+let g_field_shape = (2 ** 3.5) || 13;  // if field shape decides scaleFactor: 4 * 4 == 4 quadrants. A sinusoidal pattern creates at max 4 whole spirals.  else use atleast (4 * 2.5) or 10.
+__DEBUG && Utils.assert(g_field_shape >= Math.fround(2 ** (Math.log(10) / Math.log(2))), `Expected field shape to be greater than 10. Got ${g_field_shape}.`);  // 10
+let g_field_steps = (2 ** (5 || 4));  // Should be a power of 2, for bitwise operation while computing. // Field size =>1: 4|2: 16|3: 64|4: 256|5: 1024|6: 4096|7: 16384|...[((2 ** 5) ** 2) == 1024 == (2 ** 10)]
+if (__DEBUG) {
+    const shape_to_step_ratio = g_field_shape / g_field_steps;
+    const shape_to_step_ratio_inv = 1 / shape_to_step_ratio;
+    console.log({ shape_to_step_ratio, shape_to_step_ratio_inv })
+    if (shape_to_step_ratio_inv <= 16 && g_field_shape < (2 ** 3.5)) alert(JSON.stringify({ shape_to_step_ratio, shape_to_step_ratio_inv, g_field_shape, g_field_steps }, null, 4));
+}
+let g_field_resolution = g_field_shape || 10;  /* Doubt if this should affect scale here or, N_FIELD_SHAPE should??? */
+let g_field_instance = new FlowField(g_field_shape, g_field_shape, g_field_steps, g_cur_field_pattern);
+let g_scale = canvas.width / g_field_resolution; // 800 x 800 => 80 x 80, 10 * 1 unit pixel
 let g_canvas_width = canvas.width;
 let g_canvas_height = canvas.height;
 let g_cell_count = g_canvas_width * g_canvas_height;
 let g_frame_tick = 1;
 let g_frame_tick_limit = Math.floor(60 * FPS_RESISTANCE / FPS_MULTIPLIER) || Infinity;  // {FPS_RESISTANCE = 0.02} :: {1200 frame_ticks in (35339:40946)ms} || {120 frame_ticks = 4343ms => 1 frame = 36ms approx}
 {
-    g_frame_tick_limit = Math.floor(g_frame_tick_limit * PHI); // {1941 frame_ticks in (57000:70000)ms}
+    g_frame_tick_limit = Math.floor(g_frame_tick_limit * 6); // {1min if 10fps}
 }
-let g_frame_tick_limit_360deg = 360 / g_frame_tick_limit;
+let g_frame_tick_limit_360deg = (360 / g_frame_tick_limit);
 let g_frame_tick_animation_is_paused = false;
+
 /** @type {FlowField|undefined} */
 let g_flow_field_data;
 /** @type {Particle|undefined} */
@@ -610,7 +676,6 @@ let g_is_drawn_once = false;
  */
 function animate(ff) {
     const n_data_points = ff.field.length;
-
     /** Using a bitwise right shift (>>) for division by 2^log2(n_data_points), which is equivalent to dividing g_cell_count by n_data_points. This optimization is valid when n_data_points is a power of 2.   
      * @example const n_points_per_cell = g_cell_count / n_data_points; */
     const n_points_per_cell = g_cell_count >> Math.log2(n_data_points);
@@ -622,14 +687,15 @@ function animate(ff) {
 
         const with_particle_trail = true;
         if (!with_particle_trail) {
-            console.count("with_particle_trail");  // None
+            __DEBUG && console.count("with_particle_trail");  // None
             CanvasFn.clear_canvas();
         }
 
         if (!g_is_drawn_once) {  // PERF: use pre-made sprites.
-            console.count("g_is_drawn_once");  // 1
-            // Draw visualization based on data.
-            ff.field.forEach(point => {
+            __DEBUG && console.count("g_is_drawn_once");  // 1
+            CanvasFn.clear_canvas();
+            ctx_field_offscreen.clearRect(0, 0, canvas.width, canvas.height)
+            ff.field.forEach(point => {  // Draw visualization based on data.
                 CanvasFn.draw_arrow(
                     (point.x * g_scale),
                     (point.y * g_scale),
@@ -637,14 +703,15 @@ function animate(ff) {
                     Math.sqrt(point.u ** 2 + point.v ** 2),
                     arrow_size,
                     /* color:*/ undefined,
-                    /* with_arrow_line:*/ false,
+                    g_field_has_arrows,
                 );
             });
+            // Copy the content of the off-screen canvas to the visible canvas.
+            ctx.drawImage(canvas_field_offscreen, 0, 0);  // (42)ms
             g_is_drawn_once = true;
         }
 
-        ParticleFn.update_particle_via_field(g_particle, ff.field);
-
+        ParticleFn.update_particle_via_field(g_particle, ff.field,/* is_lerped */ true, /* t_interpolate */ 0.90);
         ParticleFn.draw_particle(g_particle);
 
         if (g_frame_tick > g_frame_tick_limit) {  //  Break condition.
@@ -652,7 +719,6 @@ function animate(ff) {
             __DEBUG && Logging.log_on_stop_animation();
             return;
         }
-
         g_animation_frame_id_handle = requestAnimationFrame(() => animate(ff));  // (5.8)ms  //  Request the next frame
     }
 
@@ -677,25 +743,31 @@ function main() {
 document.getElementById("stop_animation_toggle")?.addEventListener("click", _ => {
     CanvasFn.stop_animation(g_animation_frame_id_handle);
 });
-
 document.getElementById("reload_animation_toggle")?.addEventListener("click", _ => {
     CanvasFn.stop_animation(g_animation_frame_id_handle);
     EventHandlerFn.reset_all();
     animate(g_field_instance);
 });
-
 document.getElementById("shuffle_field_toggle")?.addEventListener("click", _ => {
     EventHandlerFn.handle_shuffle_field_pattern();
 });
+document.getElementById("gui_fps").textContent = `${Math.floor(FPS_RESISTANCE / FPS_MULTIPLIER)}fps`
 
 // --------------------------------------------------------------------------------------------------------------------
 // SCRIPT EXECUTION
 
 /** Initializes the simulation when the DOM content is loaded. */
-if (/* Event:pagehide */ !false) { // (47.1:61.7)ms / (629:5246)ms {Total}
-    document.addEventListener("DOMContentLoaded", () => {
-        main()
-    });
-} else {  // (44.9:66.7)ms / (612:5254)ms {Total}
+document.addEventListener("DOMContentLoaded", () => {
     main()
+});
+
+function monitor_device_screen_orientation() {
+    /** @type {ScreenOrientation} */
+    const cur_screen_orientation = (screen.orientation);
+    /** @type {number} */
+    const cur_screen_orientation_angle = cur_screen_orientation.angle;
+}
+
+if (__DEBUG) {
+    monitor_device_screen_orientation();
 }
